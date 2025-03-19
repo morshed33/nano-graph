@@ -225,7 +225,7 @@ export default function InvestmentDetail({
       viewRange.start,
       viewRange.end + 1
     );
-    const values = visibleData.map((item) => item.value);
+    // const values = visibleData.map((item) => item.value);
     const minValue = yAxisScale.min;
     const maxValue = yAxisScale.max;
 

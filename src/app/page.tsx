@@ -1,4 +1,8 @@
-import InvestmentPortfolio from "@/components/investment-portfolio";
+// import InvestmentPortfolio from "@/components/investment-portfolio";
+
+import { InvestmentPortfolio } from "@/test-3";
+
+// import { InvestmentPortfolio } from "@/test2";
 
 export default function Home() {
   return (

@@ -73,16 +73,16 @@ const PieChartContainer: React.FC<PieChartContainerProps> = ({
     segmentAnimation?.type || "none"
   );
   const [activeAnimationType, setActiveAnimationType] = useState<string>(
-    activeSegmentAnimation?.type || "pulse"
+    activeSegmentAnimation?.type || "none"
   );
   const [selectedAnimationType, setSelectedAnimationType] = useState<string>(
-    selectedSegmentAnimation?.type || "scale"
+    selectedSegmentAnimation?.type || "none"
   );
   const [innerArcAnimationType, setInnerArcAnimationType] = useState<string>(
-    innerArcAnimation?.type || "pulse"
+    innerArcAnimation?.type || "none"
   );
   const [outerArcAnimationType, setOuterArcAnimationType] = useState<string>(
-    outerArcAnimation?.type || "pulse"
+    outerArcAnimation?.type || "none"
   );
   const [cursorPointerEnabled, setCursorPointerEnabled] =
     useState(showCursorPointer);
@@ -171,21 +171,28 @@ const PieChartContainer: React.FC<PieChartContainerProps> = ({
     value,
     onChange,
     disabled = false,
+    id,
   }: {
     label: string;
     value: string;
     onChange: (value: string) => void;
     disabled?: boolean;
+    id: string;
   }) => (
     <div className="mb-3">
-      <label className="block text-sm font-medium text-gray-700 mb-1">
+      <label
+        htmlFor={id}
+        className="block text-sm font-medium text-gray-700 mb-1"
+      >
         {label}
       </label>
       <select
+        id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
         className="w-full p-1 border rounded text-sm"
+        aria-label={`Select ${label} animation type`}
       >
         <option value="none">None</option>
         <option value="fade">Fade</option>
@@ -212,10 +219,14 @@ const PieChartContainer: React.FC<PieChartContainerProps> = ({
         <div className="mb-6 px-6">
           <div className="flex flex-wrap gap-6 mb-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="pie-thickness"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Pie Thickness: {(chartThickness * 100).toFixed(0)}%
               </label>
               <input
+                id="pie-thickness"
                 type="range"
                 min="0.1"
                 max="0.8"
@@ -225,13 +236,21 @@ const PieChartContainer: React.FC<PieChartContainerProps> = ({
                   setChartThickness(Number.parseFloat(e.target.value))
                 }
                 className="w-32"
+                aria-valuemin={0.1}
+                aria-valuemax={0.8}
+                aria-valuenow={chartThickness}
+                aria-label="Adjust pie thickness"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+            {/* <div>
+              <label
+                htmlFor="outer-arc-width"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Outer Arc Width: {(chartOuterArcThickness * 100).toFixed(0)}%
               </label>
               <input
+                id="outer-arc-width"
                 type="range"
                 min="0.1"
                 max="0.9"
@@ -241,17 +260,26 @@ const PieChartContainer: React.FC<PieChartContainerProps> = ({
                   setChartOuterArcThickness(Number.parseFloat(e.target.value))
                 }
                 className="w-32"
+                aria-valuemin={0.1}
+                aria-valuemax={0.9}
+                aria-valuenow={chartOuterArcThickness}
+                aria-label="Adjust outer arc width"
               />
-            </div>
+            </div> */}
             <div className="flex flex-col">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                All Animations
-              </label>
+              <span
+                id="animation-switch-label"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Animation Master Switch
+              </span>
               <button
+                aria-labelledby="animation-switch-label"
+                aria-pressed={isAnimationEnabled}
                 className={`px-3 py-1 rounded text-sm font-medium ${
                   isAnimationEnabled
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-200 text-gray-700"
+                    ? "bg-blue-700 text-white"
+                    : "bg-gray-300 text-gray-800"
                 }`}
                 onClick={toggleAnimations}
               >
@@ -259,14 +287,19 @@ const PieChartContainer: React.FC<PieChartContainerProps> = ({
               </button>
             </div>
             <div className="flex flex-col">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <span
+                id="cursor-pointer-label"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Cursor Pointer
-              </label>
+              </span>
               <button
+                aria-labelledby="cursor-pointer-label"
+                aria-pressed={cursorPointerEnabled}
                 className={`px-3 py-1 rounded text-sm font-medium ${
                   cursorPointerEnabled
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-200 text-gray-700"
+                    ? "bg-blue-700 text-white"
+                    : "bg-gray-300 text-gray-800"
                 }`}
                 onClick={() => setCursorPointerEnabled(!cursorPointerEnabled)}
               >
@@ -279,36 +312,42 @@ const PieChartContainer: React.FC<PieChartContainerProps> = ({
           {animationControlPanel && (
             <div className="bg-gray-50 p-4 rounded-lg grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <AnimationSelector
+                id="initial-animation"
                 label="Initial Animation"
                 value={initialAnimationType}
                 onChange={setInitialAnimationType}
                 disabled={!isAnimationEnabled}
               />
               <AnimationSelector
+                id="segment-animation"
                 label="Segment Animation"
                 value={segmentAnimationType}
                 onChange={setSegmentAnimationType}
                 disabled={!isAnimationEnabled}
               />
               <AnimationSelector
+                id="hover-animation"
                 label="Hover Animation"
                 value={activeAnimationType}
                 onChange={setActiveAnimationType}
                 disabled={!isAnimationEnabled}
               />
               <AnimationSelector
+                id="selected-animation"
                 label="Selected Animation"
                 value={selectedAnimationType}
                 onChange={setSelectedAnimationType}
                 disabled={!isAnimationEnabled}
               />
               <AnimationSelector
+                id="inner-arc-animation"
                 label="Inner Arc Animation"
                 value={innerArcAnimationType}
                 onChange={setInnerArcAnimationType}
                 disabled={!isAnimationEnabled}
               />
               <AnimationSelector
+                id="outer-arc-animation"
                 label="Outer Arc Animation"
                 value={outerArcAnimationType}
                 onChange={setOuterArcAnimationType}

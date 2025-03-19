@@ -100,19 +100,19 @@ const segmentAnimation: AnimationOptions = {
 };
 
 const activeSegmentAnimation: AnimationOptions = {
-  type: "pulse",
+  type: "none",
   duration: 800,
   easing: "ease-in-out",
 };
 
 const selectedSegmentAnimation: AnimationOptions = {
-  type: "scale",
+  type: "none",
   duration: 1200,
   easing: "ease-in-out",
 };
 
 const innerArcAnimation: AnimationOptions = {
-  type: "pulse",
+  type: "none",
   duration: 3000,
   easing: "ease-in-out",
 };

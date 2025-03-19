@@ -6,7 +6,7 @@ export interface ChartSegment {
     data?: Record<string, any>; // Additional data for the segment
 }
 
-export type AnimationType = 'none' | 'fade' | 'scale' | 'rotate' | 'bounce' | 'pulse';
+export type AnimationType = 'none' | 'fade' | 'scale' | 'rotate' | 'spin' | 'bounce' | 'pulse';
 
 export interface AnimationOptions {
     type: AnimationType;
@@ -25,10 +25,15 @@ export interface PieChartProps {
     selectedSegment?: number | null;
     className?: string;
     animate?: boolean;
-    animation?: AnimationOptions;
-    segmentAnimation?: AnimationOptions;
-    activeAnimation?: AnimationOptions;
-    selectedAnimation?: AnimationOptions;
+
+    // More specific animation controls
+    initialAnimation?: AnimationOptions; // Initial animation when chart renders
+    segmentAnimation?: AnimationOptions; // Animation for all segments
+    activeSegmentAnimation?: AnimationOptions; // Animation for hovered segment
+    selectedSegmentAnimation?: AnimationOptions; // Animation for selected segment
+    innerArcAnimation?: AnimationOptions; // Animation for inner arc
+    outerArcAnimation?: AnimationOptions; // Animation for outer arc
+    showCursorPointer?: boolean; // Whether to show cursor pointer on hover
 }
 
 export interface PieChartLegendProps {
@@ -61,4 +66,11 @@ export interface ChartDimensions {
     radius: number;
     innerRadius: number;
     outerArcRadius: number;
+}
+
+export interface SegmentAnimationState {
+    radiusOffset: number;
+    angleOffset: number;
+    opacity: number;
+    rotation: number;
 } 

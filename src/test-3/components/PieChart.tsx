@@ -5,27 +5,39 @@ import { AnimationOptions, PieChartProps } from "../types";
 import { drawPieChart, findHoveredSegment, getChartDimensions } from "../utils";
 
 // Default animation options
-const defaultAnimation: AnimationOptions = {
-  type: "fade",
-  duration: 800,
+const defaultInitialAnimation: AnimationOptions = {
+  type: "spin",
+  duration: 1200,
   easing: "ease-out",
 };
 
 const defaultSegmentAnimation: AnimationOptions = {
-  type: "scale",
+  type: "none",
   duration: 1000,
   easing: "ease-out",
 };
 
-const defaultActiveAnimation: AnimationOptions = {
+const defaultActiveSegmentAnimation: AnimationOptions = {
   type: "pulse",
-  duration: 1000,
+  duration: 800,
   easing: "ease-in-out",
 };
 
-const defaultSelectedAnimation: AnimationOptions = {
-  type: "bounce",
+const defaultSelectedSegmentAnimation: AnimationOptions = {
+  type: "scale",
   duration: 1200,
+  easing: "ease-in-out",
+};
+
+const defaultInnerArcAnimation: AnimationOptions = {
+  type: "pulse",
+  duration: 3000,
+  easing: "ease-in-out",
+};
+
+const defaultOuterArcAnimation: AnimationOptions = {
+  type: "pulse",
+  duration: 1500,
   easing: "ease-in-out",
 };
 
@@ -39,14 +51,19 @@ const PieChart: React.FC<PieChartProps> = ({
   selectedSegment,
   className = "",
   animate = true,
-  animation = defaultAnimation,
+  initialAnimation = defaultInitialAnimation,
   segmentAnimation = defaultSegmentAnimation,
-  activeAnimation = defaultActiveAnimation,
-  selectedAnimation = defaultSelectedAnimation,
+  activeSegmentAnimation = defaultActiveSegmentAnimation,
+  selectedSegmentAnimation = defaultSelectedSegmentAnimation,
+  innerArcAnimation = defaultInnerArcAnimation,
+  outerArcAnimation = defaultOuterArcAnimation,
+  showCursorPointer = true,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [hoveredSegment, setHoveredSegment] = useState<number | null>(null);
+  const initialRenderTimeRef = useRef<number>(Date.now());
 
   // Memoize chart dimensions calculation
   const getChartDims = useCallback(
@@ -75,10 +92,13 @@ const PieChart: React.FC<PieChartProps> = ({
       selectedSegment ?? null,
       outerArcThickness,
       animate,
-      animation,
+      initialAnimation,
       segmentAnimation,
-      activeAnimation,
-      selectedAnimation
+      activeSegmentAnimation,
+      selectedSegmentAnimation,
+      innerArcAnimation,
+      outerArcAnimation,
+      initialRenderTimeRef.current
     );
 
     // Continue animation loop if animation is enabled
@@ -92,10 +112,12 @@ const PieChart: React.FC<PieChartProps> = ({
     getChartDims,
     outerArcThickness,
     animate,
-    animation,
+    initialAnimation,
     segmentAnimation,
-    activeAnimation,
-    selectedAnimation,
+    activeSegmentAnimation,
+    selectedSegmentAnimation,
+    innerArcAnimation,
+    outerArcAnimation,
   ]);
 
   // Initialize canvas
@@ -113,6 +135,9 @@ const PieChart: React.FC<PieChartProps> = ({
     canvas.width = rect.width * dpr;
     canvas.height = rect.height * dpr;
     ctx.scale(dpr, dpr);
+
+    // Store the initial render time for animations
+    initialRenderTimeRef.current = Date.now();
 
     setIsInitialized(true);
   }, [getChartDims, isInitialized]);
@@ -177,18 +202,27 @@ const PieChart: React.FC<PieChartProps> = ({
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
       const canvas = canvasRef.current;
-      if (!canvas || !onSegmentHover) return;
+      if (!canvas) return;
 
       const rect = canvas.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
 
       const dimensions = getChartDims(canvas);
-      const hoveredSegment = findHoveredSegment(x, y, segments, dimensions);
+      const hoveredIdx = findHoveredSegment(x, y, segments, dimensions);
 
-      onSegmentHover(hoveredSegment);
+      // Update cursor style based on whether a segment is hovered
+      if (showCursorPointer) {
+        canvas.style.cursor = hoveredIdx !== null ? "pointer" : "default";
+      }
+
+      setHoveredSegment(hoveredIdx);
+
+      if (onSegmentHover) {
+        onSegmentHover(hoveredIdx);
+      }
     },
-    [getChartDims, segments, onSegmentHover]
+    [getChartDims, segments, onSegmentHover, showCursorPointer]
   );
 
   // Handle click on segments
@@ -211,10 +245,16 @@ const PieChart: React.FC<PieChartProps> = ({
 
   // Handle mouse leave
   const handleMouseLeave = useCallback(() => {
+    if (canvasRef.current && showCursorPointer) {
+      canvasRef.current.style.cursor = "default";
+    }
+
+    setHoveredSegment(null);
+
     if (onSegmentHover) {
       onSegmentHover(null);
     }
-  }, [onSegmentHover]);
+  }, [onSegmentHover, showCursorPointer]);
 
   return (
     <canvas

@@ -87,20 +87,38 @@ const highestReturn = "Daily Farm";
 const lowestReturn = "Real Estate";
 
 // Default animation settings
-const defaultAnimation: AnimationOptions = {
-  type: "fade",
-  duration: 800,
+const initialAnimation: AnimationOptions = {
+  type: "spin",
+  duration: 1500,
   easing: "ease-out",
 };
 
-const activeAnimation: AnimationOptions = {
+const segmentAnimation: AnimationOptions = {
+  type: "none",
+  duration: 1000,
+  easing: "ease-out",
+};
+
+const activeSegmentAnimation: AnimationOptions = {
   type: "pulse",
+  duration: 800,
+  easing: "ease-in-out",
+};
+
+const selectedSegmentAnimation: AnimationOptions = {
+  type: "scale",
   duration: 1200,
   easing: "ease-in-out",
 };
 
-const selectedAnimation: AnimationOptions = {
-  type: "bounce",
+const innerArcAnimation: AnimationOptions = {
+  type: "pulse",
+  duration: 3000,
+  easing: "ease-in-out",
+};
+
+const outerArcAnimation: AnimationOptions = {
+  type: "pulse",
   duration: 1500,
   easing: "ease-in-out",
 };
@@ -160,11 +178,15 @@ export default function InvestmentPortfolio() {
       className="max-w-6xl p-6"
       showControls={true}
       animate={true}
-      animation={defaultAnimation}
-      activeAnimation={activeAnimation}
-      selectedAnimation={selectedAnimation}
+      initialAnimation={initialAnimation}
+      segmentAnimation={segmentAnimation}
+      activeSegmentAnimation={activeSegmentAnimation}
+      selectedSegmentAnimation={selectedSegmentAnimation}
+      innerArcAnimation={innerArcAnimation}
+      outerArcAnimation={outerArcAnimation}
+      showCursorPointer={true}
       enableNavigationOnDoubleClick={true}
-      animationButtonControl={true}
+      animationControlPanel={true}
     />
   );
 }

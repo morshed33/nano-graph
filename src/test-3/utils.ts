@@ -1,4 +1,4 @@
-import { AnimationOptions, ChartDimensions, ChartSegment } from "./types";
+import { AnimationOptions, ChartDimensions, ChartSegment, SegmentAnimationState } from "./types";
 
 /**
  * Calculates the dimensions for the pie chart
@@ -115,66 +115,104 @@ function applyEasing(progress: number, easing: string): number {
 /**
  * Calculates animation transformations for pie segments
  */
-export function getSegmentAnimationTransform(
+export function calculateSegmentAnimation(
     index: number,
     isActive: boolean,
     isSelected: boolean,
-    animation: AnimationOptions | undefined,
-    activeAnimation: AnimationOptions | undefined,
-    selectedAnimation: AnimationOptions | undefined,
-    progress: number
-): { radiusOffset: number; angleOffset: number } {
+    initialAnimation: AnimationOptions | undefined,
+    segmentAnimation: AnimationOptions | undefined,
+    activeSegmentAnimation: AnimationOptions | undefined,
+    selectedSegmentAnimation: AnimationOptions | undefined,
+    animationProgress: number,
+    initialRenderTime: number
+): SegmentAnimationState {
     let radiusOffset = 0;
     let angleOffset = 0;
+    let opacity = 1;
+    let rotation = 0;
 
-    // Apply entrance animation to all segments
-    if (animation && animation.type !== 'none') {
-        const entryProgress = getAnimationProgress(Date.now() - index * 100, animation);
+    // Apply initial animation to all segments
+    if (initialAnimation && initialAnimation.type !== 'none') {
+        const initialProgress = getAnimationProgress(initialRenderTime, {
+            ...initialAnimation,
+            delay: initialAnimation.delay || (index * 100) // Stagger the segments
+        });
 
-        switch (animation.type) {
+        switch (initialAnimation.type) {
             case 'scale':
-                radiusOffset = (1 - entryProgress) * -0.2;
+                radiusOffset = (1 - initialProgress) * -0.3;
+                opacity = initialProgress;
                 break;
             case 'rotate':
-                angleOffset = (1 - entryProgress) * Math.PI * 0.2;
+            case 'spin':
+                rotation = (1 - initialProgress) * Math.PI * 2;
+                opacity = initialProgress;
                 break;
-            // Add other entrance animations as needed
+            case 'fade':
+                opacity = initialProgress;
+                break;
+            // Add other initial animations as needed
+        }
+    }
+
+    // Apply segment animation (ongoing)
+    if (segmentAnimation && segmentAnimation.type !== 'none') {
+        const cycleProgress = (animationProgress + (index * 0.1)) % 1; // Offset each segment slightly
+
+        switch (segmentAnimation.type) {
+            case 'pulse':
+                // Subtle continuous pulse for all segments
+                radiusOffset += Math.sin(cycleProgress * Math.PI * 2) * 0.02;
+                break;
+            case 'rotate':
+                // Slight rotation effect
+                angleOffset += Math.sin(cycleProgress * Math.PI * 2) * 0.02;
+                break;
+            // Add more continuous animations
         }
     }
 
     // Apply active segment animation
-    if (isActive && activeAnimation && activeAnimation.type !== 'none') {
-        switch (activeAnimation.type) {
+    if (isActive && activeSegmentAnimation && activeSegmentAnimation.type !== 'none') {
+        switch (activeSegmentAnimation.type) {
             case 'pulse':
-                // Subtle pulse effect
-                radiusOffset += Math.sin(progress * Math.PI * 4) * 0.03;
+                // More noticeable pulse effect
+                radiusOffset += Math.sin(animationProgress * Math.PI * 4) * 0.04;
                 break;
             case 'scale':
-                // Slightly expand
+                // Expand when active
                 radiusOffset += 0.05;
+                break;
+            case 'rotate':
+                // Slight wiggle on hover
+                angleOffset += Math.sin(animationProgress * Math.PI * 6) * 0.03;
                 break;
         }
     }
 
     // Apply selected segment animation
-    if (isSelected && selectedAnimation && selectedAnimation.type !== 'none') {
-        switch (selectedAnimation.type) {
+    if (isSelected && selectedSegmentAnimation && selectedSegmentAnimation.type !== 'none') {
+        switch (selectedSegmentAnimation.type) {
             case 'scale':
-                // Expand more significantly
+                // More significant expansion when selected
                 radiusOffset += 0.1;
                 break;
             case 'pulse':
-                // Stronger pulse
-                radiusOffset += Math.sin(progress * Math.PI * 2) * 0.05 + 0.05;
+                // Stronger pulse for selected
+                radiusOffset += Math.sin(animationProgress * Math.PI * 2) * 0.07 + 0.05;
                 break;
             case 'bounce':
-                // Bounce effect
-                radiusOffset += Math.abs(Math.sin(progress * Math.PI * 3)) * 0.08;
+                // Bounce effect for selected
+                radiusOffset += Math.abs(Math.sin(animationProgress * Math.PI * 3)) * 0.09;
+                break;
+            case 'rotate':
+                // Slight continuous rotation for selected
+                angleOffset += Math.sin(animationProgress * Math.PI * 2) * 0.05;
                 break;
         }
     }
 
-    return { radiusOffset, angleOffset };
+    return { radiusOffset, angleOffset, opacity, rotation };
 }
 
 /**
@@ -188,10 +226,13 @@ export function drawPieChart(
     selectedSegment: number | null,
     outerArcThickness: number = 0.5,
     animate: boolean = false,
-    animation?: AnimationOptions,
+    initialAnimation?: AnimationOptions,
     segmentAnimation?: AnimationOptions,
-    activeAnimation?: AnimationOptions,
-    selectedAnimation?: AnimationOptions
+    activeSegmentAnimation?: AnimationOptions,
+    selectedSegmentAnimation?: AnimationOptions,
+    innerArcAnimation?: AnimationOptions,
+    outerArcAnimation?: AnimationOptions,
+    initialRenderTime: number = Date.now()
 ): void {
     const { rect, centerX, centerY, radius, innerRadius, outerArcRadius } = dimensions;
 
@@ -209,25 +250,28 @@ export function drawPieChart(
         const isSelected = index === selectedSegment;
 
         // Calculate animation transformations
-        const { radiusOffset, angleOffset } = animate
-            ? getSegmentAnimationTransform(
+        const { radiusOffset, angleOffset, opacity, rotation } = animate
+            ? calculateSegmentAnimation(
                 index,
                 isActive,
                 isSelected,
-                animation,
-                activeAnimation,
-                selectedAnimation,
-                animationProgress
+                initialAnimation,
+                segmentAnimation,
+                activeSegmentAnimation,
+                selectedSegmentAnimation,
+                animationProgress,
+                initialRenderTime
             )
-            : { radiusOffset: 0, angleOffset: 0 };
+            : { radiusOffset: 0, angleOffset: 0, opacity: 1, rotation: 0 };
 
         // Apply transformations
         const effectiveRadius = radius * (1 + radiusOffset);
-        const adjustedStartAngle = startAngle + angleOffset;
+        const adjustedStartAngle = startAngle + angleOffset + rotation;
         const endAngle = adjustedStartAngle + segmentAngle;
         const midAngle = adjustedStartAngle + segmentAngle / 2;
 
-        // Draw segment
+        // Draw segment with opacity
+        ctx.globalAlpha = opacity;
         ctx.beginPath();
         ctx.moveTo(centerX, centerY);
         ctx.arc(centerX, centerY, effectiveRadius, adjustedStartAngle, endAngle);
@@ -242,36 +286,66 @@ export function drawPieChart(
             ctx.fillStyle = segment.color;
         }
         ctx.fill();
+        ctx.globalAlpha = 1; // Reset opacity
 
         // Draw outer arc for active or selected state
         if (isActive || isSelected) {
             const outerArcAngleStart = midAngle - segmentAngle * outerArcThickness;
             const outerArcAngleEnd = midAngle + segmentAngle * outerArcThickness;
 
-            // Animate arc width for selected segments
-            const arcWidth = isSelected && animate && selectedAnimation
-                ? 12 + Math.sin(animationProgress * Math.PI * 2) * 4
-                : 12;
+            // Calculate outer arc animation
+            let arcWidth = 12;
+            let arcRadiusOffset = 0;
+            let arcOpacity = 1;
 
+            if (animate && outerArcAnimation && outerArcAnimation.type !== 'none') {
+                if (outerArcAnimation.type === 'pulse') {
+                    arcWidth = isSelected
+                        ? 12 + Math.sin(animationProgress * Math.PI * 2) * 4
+                        : 12 + Math.sin(animationProgress * Math.PI * 2) * 2;
+                } else if (outerArcAnimation.type === 'scale') {
+                    arcRadiusOffset = isSelected
+                        ? Math.sin(animationProgress * Math.PI * 2) * 0.04
+                        : Math.sin(animationProgress * Math.PI * 2) * 0.02;
+                }
+            }
+
+            ctx.globalAlpha = arcOpacity;
             ctx.beginPath();
             ctx.arc(
                 centerX,
                 centerY,
-                outerArcRadius + (isSelected ? 0.05 * radius : 0),
+                outerArcRadius * (1 + arcRadiusOffset),
                 outerArcAngleStart,
                 outerArcAngleEnd
             );
             ctx.lineWidth = arcWidth;
             ctx.strokeStyle = segment.color;
             ctx.stroke();
+            ctx.globalAlpha = 1; // Reset opacity
         }
 
         startAngle = startAngle + segmentAngle; // Increment without animation offset
     });
 
-    // Draw inner circle for donut effect
+    // Draw inner circle for donut effect with animation
+    let innerArcScale = 1;
+    let innerArcOpacity = 1;
+
+    if (animate && innerArcAnimation && innerArcAnimation.type !== 'none') {
+        if (innerArcAnimation.type === 'pulse') {
+            innerArcScale = 1 + Math.sin(animationProgress * Math.PI * 2) * 0.03;
+        } else if (innerArcAnimation.type === 'scale') {
+            innerArcScale = 1 + Math.sin(animationProgress * Math.PI) * 0.05;
+        } else if (innerArcAnimation.type === 'fade') {
+            innerArcOpacity = 0.8 + Math.sin(animationProgress * Math.PI * 2) * 0.2;
+        }
+    }
+
+    ctx.globalAlpha = innerArcOpacity;
     ctx.beginPath();
-    ctx.arc(centerX, centerY, innerRadius, 0, 2 * Math.PI);
+    ctx.arc(centerX, centerY, innerRadius * innerArcScale, 0, 2 * Math.PI);
     ctx.fillStyle = "white";
     ctx.fill();
+    ctx.globalAlpha = 1; // Reset opacity
 } 
